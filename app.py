@@ -251,6 +251,7 @@ if data is not None:
         ax3.set_ylabel('PM2.5 (µg/m³)')
         plt.tight_layout()
         st.pyplot(fig3)
+
     
     elif selected_dataset == "Dating App User Behavior":
         if st.checkbox("Show Original Data Table", key="dating_original"):
@@ -311,6 +312,40 @@ if data is not None:
         ax3.set_ylabel('Frequency')
         plt.tight_layout()
         st.pyplot(fig3)
+
+                # --- Additional Graphs for Dating App User Behavior ---
+
+        # Graph: Distribution of Education Level
+        st.subheader("User Distribution by Education Level")
+        fig4, ax4 = plt.subplots(figsize=(8, 5))
+        sns.countplot(
+            data=df_filtered,
+            x='education_level',
+            order=df_filtered['education_level'].value_counts().index,
+            palette='coolwarm',
+            ax=ax4
+        )
+        ax4.set_xlabel('Education Level')
+        ax4.set_ylabel('Number of Users')
+        # Rotate x-axis labels to avoid overlapping
+        ax4.set_xticklabels(ax4.get_xticklabels(), rotation=45, ha='right')
+        plt.tight_layout()
+        st.pyplot(fig4)
+
+        # Graph: Income Bracket vs Likes Received
+                # --- Revised Diagram: Income Bracket vs Likes Received (Mean with Error Bars) ---
+        st.subheader("Income Bracket vs Likes Received (Mean Likes ± SD)")
+        fig5, ax5 = plt.subplots(figsize=(8, 5))
+        # Use Seaborn's barplot to compute and plot the mean likes_received for each income bracket.
+        # Error bars display the standard deviation.
+        sns.barplot(data=df_filtered, x='income_bracket', y='likes_received', ci='sd', ax=ax5)
+        ax5.set_xlabel('Income Bracket')
+        ax5.set_ylabel('Average Likes Received')
+        ax5.set_title('Average Likes Received by Income Bracket')
+        # Rotate x-axis labels to reduce overlapping text if necessary.
+        ax5.set_xticklabels(ax5.get_xticklabels(), rotation=45, ha='right')
+        plt.tight_layout()
+        st.pyplot(fig5)
     
     elif selected_dataset == "Global Video Game Sales":
         if st.checkbox("Show Original Data Table", key="vgsales_original"):
@@ -378,5 +413,7 @@ if data is not None:
         ax3.set_ylabel('Number of Games')
         plt.tight_layout()
         st.pyplot(fig3)
+
+        
 else:
     st.error("Failed to load data.")
