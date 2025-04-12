@@ -78,8 +78,6 @@ streamlit run app.py
 - **Visual Exploration:** View detailed charts (bar, line, pie, histograms).
 - **Key Metrics:** Quickly review summarized statistics.
 
-*(Insert additional screenshots here.)*
-
 ## Directory Structure
 
 ```plaintext
