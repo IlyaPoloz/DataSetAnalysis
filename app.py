@@ -418,10 +418,11 @@ if data is not None:
                 sns.histplot(
                     subset['age_difference'],
                     kde=True, bins=20,
+                    stat='percent',
                     ax=ax3, label=method, alpha=0.5
                 )
             ax3.set_xlabel("Age Difference (Years)")
-            ax3.set_ylabel("Frequency")
+            ax3.set_ylabel("Percentage")
             ax3.legend(title="Meeting Method")
             plt.tight_layout()
             st.pyplot(fig3)
