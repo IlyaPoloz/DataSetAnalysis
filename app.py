@@ -32,7 +32,7 @@ def load_data(csv_path):
 # --- Configuration for Each Dataset ---
 dataset_options = [
     "Global Video Game Sales",
-    "Mikrouzņēmumu nodokļa maksātāji",
+    "Micro-enterprise Tax Payers",
     "How Couples Meet and Stay Together",
     "Global EV Data Explorer"
 ]
@@ -46,9 +46,9 @@ titles_config = {
         "chart2_title": "Sales by Region",
         "chart3_title": "Games Released Over Time"
     },
-    "Mikrouzņēmumu nodokļa maksātāji": {
+    "Micro-enterprise Tax Payers": {
         "file": "pdb_munmaksataji_odata.csv",
-        "main_title": "Mikrouzņēmumu Nodokļa Maksātāju Dashboard",
+        "main_title": "Micro-enterprise Tax Payers Dashboard (Latvia)",
         "metric_label": "Total Taxpayers",
         "chart1_title": "Distribution of Active vs Inactive Taxpayers",
         "chart2_title": "Registrations Over Time",
@@ -203,11 +203,15 @@ if data is not None:
             ax4.set_ylabel('Publisher')
             plt.tight_layout()
             st.pyplot(fig4)
-    elif selected_dataset == "Mikrouzņēmumu nodokļa maksātāji":
-        data.columns = (
-            data.columns.str.lower()
-            .str.replace(' ', '_')
-        )
+    elif selected_dataset == "Micro-enterprise Tax Payers":
+        data.columns = data.columns.str.lower().str.replace(' ', '_')
+        
+        data['aktivs'] = data['aktivs'].str.strip().replace({
+            'jā': 'active',
+            'ir': 'active',
+            'nē': 'innactive',
+            'nav': 'innactive'
+        })
         
         data['registrets'] = data['registrets'].str.strip()
         data['izslegts'] = data['izslegts'].str.strip()
@@ -242,18 +246,18 @@ if data is not None:
             (data['aktivs'].isin(selected_statuses)) &
             (data['registration_year'].isin(selected_reg_years))
         ]
-        if 'nav' in selected_statuses:
+        if 'no' in selected_statuses:
             df_filtered = df_filtered[
-                (df_filtered['aktivs'] == 'ir') |
-                ((df_filtered['aktivs'] == 'nav') & (df_filtered['deregistration_year'].isin(selected_dereg_years)))
+                (df_filtered['aktivs'] == 'active') |
+                ((df_filtered['aktivs'] == 'innactive') & (df_filtered['deregistration_year'].isin(selected_dereg_years)))
             ]
         
         # --- Key Metrics ---
         st.header("Key Metrics (Filtered Data)")
         col1, col2, col3 = st.columns(3)
         total_taxpayers = df_filtered.shape[0]
-        active_taxpayers = df_filtered[df_filtered['aktivs'] == 'ir'].shape[0]
-        inactive_taxpayers = df_filtered[df_filtered['aktivs'] == 'nav'].shape[0]
+        active_taxpayers = df_filtered[df_filtered['aktivs'] == 'active'].shape[0]
+        inactive_taxpayers = df_filtered[df_filtered['aktivs'] == 'innactive'].shape[0]
         col1.metric("Total Taxpayers", f"{total_taxpayers:,}")
         col2.metric("Active Taxpayers", f"{active_taxpayers:,}")
         col3.metric("Inactive Taxpayers", f"{inactive_taxpayers:,}")
@@ -268,7 +272,8 @@ if data is not None:
             st.subheader(config["chart1_title"])
             status_counts = df_filtered['aktivs'].value_counts()
             fig1, ax1 = plt.subplots(figsize=(8, 5))
-            ax1.pie(status_counts, labels=status_counts.index, autopct='%1.1f%%', colors=sns.color_palette('viridis', len(status_counts)))
+            ax1.pie(status_counts, labels=status_counts.index, autopct='%1.1f%%', 
+                    colors=sns.color_palette('viridis', len(status_counts)))
             plt.tight_layout()
             st.pyplot(fig1)
         
@@ -278,11 +283,7 @@ if data is not None:
             if len(selected_reg_years) > 1:
                 reg_counts = df_filtered['registration_year'].value_counts().sort_index()
                 fig2, ax2 = plt.subplots(figsize=(8, 5))
-                sns.lineplot(
-                    x=reg_counts.index,
-                    y=reg_counts.values,
-                    marker='o', ax=ax2
-                )
+                sns.lineplot(x=reg_counts.index, y=reg_counts.values, marker='o', ax=ax2)
                 ax2.set_xlabel('Registration Year')
                 ax2.set_ylabel('Number of Registrations')
                 plt.tight_layout()
@@ -298,15 +299,11 @@ if data is not None:
         col3_viz, col4_viz = st.columns(2)
         with col3_viz:
             st.subheader(config["chart3_title"])
-            inactive_df = df_filtered[df_filtered['aktivs'] == 'nav']
+            inactive_df = df_filtered[df_filtered['aktivs'] == 'innactive']
             if len(selected_dereg_years) > 1 and not inactive_df.empty:
                 dereg_counts = inactive_df['deregistration_year'].value_counts().sort_index()
                 fig3, ax3 = plt.subplots(figsize=(8, 5))
-                sns.lineplot(
-                    x=dereg_counts.index,
-                    y=dereg_counts.values,
-                    marker='o', ax=ax3
-                )
+                sns.lineplot(x=dereg_counts.index, y=dereg_counts.values, marker='o', ax=ax3)
                 ax3.set_xlabel('Deregistration Year')
                 ax3.set_ylabel('Number of Deregistrations')
                 plt.tight_layout()
@@ -317,6 +314,7 @@ if data is not None:
                 st.metric(f"Deregistrations in {selected_dereg_years[0]}", f"{dereg_count:,}")
             else:
                 st.write("Select multiple deregistration years to see trend, or ensure inactive taxpayers are included.")
+
         
         # Chart 4: Duration of Activity (Histogram)
         with col4_viz:
