@@ -333,6 +333,7 @@ if data is not None:
                 st.pyplot(fig4)
             else:
                 st.write("No inactive taxpayers in the filtered data to show duration.")
+
     elif selected_dataset == "How Couples Meet and Stay Together":
         if st.checkbox("Show Original Data Table", key="hcmst_original"):
             st.dataframe(data)
@@ -360,65 +361,95 @@ if data is not None:
         # --- Visualizations ---
         sns.set_theme(style="whitegrid")
         
-        # Chart 1: Distribution of Meeting Methods
-        st.subheader(config["chart1_title"])
-        fig1, ax1 = plt.subplots(figsize=(8, 5))
-        sns.countplot(
-            data=df_filtered,
-            x='q24_met_online',
-            order=df_filtered['q24_met_online'].value_counts().index,
-            ax=ax1,
-            palette="viridis"
-        )
-        ax1.set_xlabel("Meeting Method")
-        ax1.set_ylabel("Count")
-        plt.xticks(rotation=45, ha='right')
-        plt.tight_layout()
-        st.pyplot(fig1)
+        col1, col2 = st.columns(2)
         
-        # Chart 2: Relationship Quality by Meeting Method (as Percentages)
-        st.subheader(config["chart2_title"])
-        # Build a cross-tabulation normalized by meeting method (row-wise percentages)
-        quality_pct = pd.crosstab(df_filtered['q24_met_online'], df_filtered['relationship_quality'], normalize='index') * 100
-        quality_pct = quality_pct.reset_index().melt(id_vars='q24_met_online', var_name='relationship_quality', value_name='percentage')
-        fig2, ax2 = plt.subplots(figsize=(8, 5))
-        sns.barplot(
-            data=quality_pct,
-            x='q24_met_online',
-            y='percentage',
-            hue='relationship_quality',
-            ax=ax2,
-            palette="magma"
-        )
-        ax2.set_xlabel("Meeting Method")
-        ax2.set_ylabel("Percentage (%)")
-        ax2.legend(title="Relationship Quality", bbox_to_anchor=(1, 1))
-        plt.xticks(rotation=45, ha='right')
-        plt.tight_layout()
-        st.pyplot(fig2)
-        
-        # Chart 3: Age Difference Distribution by Meeting Method (Histogram)
-        st.subheader("Age Difference Distribution by Meeting Method")
-        fig3, ax3 = plt.subplots(figsize=(8, 5))
-        for method in df_filtered['q24_met_online'].unique():
-            subset = df_filtered[df_filtered['q24_met_online'] == method]
-            sns.histplot(
-                subset['age_difference'], kde=True, bins=20, ax=ax3, label=method, alpha=0.5
+        with col1:
+            st.subheader(config["chart1_title"])
+            fig1, ax1 = plt.subplots(figsize=(8, 5))
+            sns.countplot(
+                data=df_filtered,
+                x='q24_met_online',
+                order=df_filtered['q24_met_online'].value_counts().index,
+                ax=ax1,
+                palette="viridis"
             )
-        ax3.set_xlabel("Age Difference (Years)")
-        ax3.set_ylabel("Frequency")
-        ax3.legend(title="Meeting Method")
-        plt.tight_layout()
-        st.pyplot(fig3)
+            ax1.set_xlabel("Meeting Method")
+            ax1.set_ylabel("Count")
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            st.pyplot(fig1)
+        
+        with col2:
+            st.subheader(config["chart2_title"])
+            quality_pct = pd.crosstab(
+                df_filtered['q24_met_online'],
+                df_filtered['relationship_quality'],
+                normalize='index'
+            ) * 100
+            quality_pct = quality_pct.reset_index().melt(
+                id_vars='q24_met_online',
+                var_name='relationship_quality',
+                value_name='percentage'
+            )
+            fig2, ax2 = plt.subplots(figsize=(8, 5))
+            sns.barplot(
+                data=quality_pct,
+                x='q24_met_online',
+                y='percentage',
+                hue='relationship_quality',
+                ax=ax2,
+                palette="magma"
+            )
+            ax2.set_xlabel("Meeting Method")
+            ax2.set_ylabel("Percentage (%)")
+            ax2.legend(title="Relationship Quality", bbox_to_anchor=(1, 1))
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            st.pyplot(fig2)
+        
+        # Chart 3 and Marital Status Stacked Bar
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            st.subheader("Age Difference Distribution by Meeting Method")
+            fig3, ax3 = plt.subplots(figsize=(8, 5))
+            for method in df_filtered['q24_met_online'].unique():
+                subset = df_filtered[df_filtered['q24_met_online'] == method]
+                sns.histplot(
+                    subset['age_difference'],
+                    kde=True, bins=20,
+                    ax=ax3, label=method, alpha=0.5
+                )
+            ax3.set_xlabel("Age Difference (Years)")
+            ax3.set_ylabel("Frequency")
+            ax3.legend(title="Meeting Method")
+            plt.tight_layout()
+            st.pyplot(fig3)
+        
+        with col4:
+            st.subheader("Marital Status by Meeting Method (Stacked Bar Chart)")
+            if 'married' in df_filtered.columns:
+                marital_count = pd.crosstab(df_filtered['q24_met_online'], df_filtered['married'])
+                marital_pct = marital_count.div(marital_count.sum(axis=1), axis=0) * 100
+                fig5, ax5 = plt.subplots(figsize=(8, 5))
+                marital_pct.plot(kind='bar', stacked=True, ax=ax5, colormap='Set2')
+                ax5.set_xlabel("Meeting Method")
+                ax5.set_ylabel("Percentage of Couples (%)")
+                ax5.legend(title="Marital Status", bbox_to_anchor=(1, 1))
+                plt.tight_layout()
+                for container in ax5.containers:
+                    ax5.bar_label(container, fmt='%.1f%%', label_type='center')
+                st.pyplot(fig5)
+            else:
+                st.warning("No 'married' column found in the data.")
+
 
     elif selected_dataset == "Global EV Data Explorer":
-        # Clean column names
         data.columns = (
             data.columns.str.lower()
             .str.replace(' ', '_')
         )
         
-        # Show original data table if checked
         if st.checkbox("Show Original Data Table", key="ev_original"):
             st.dataframe(data)
         
