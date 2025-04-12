@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib as mpl
 
 st.set_page_config(
     page_title="Dynamic Multi-Dataset Dashboard",
@@ -68,7 +69,8 @@ titles_config = {
         "metric_label": "Total EV Sales",
         "chart1_title": "EV Sales Over Time by Powertrain",
         "chart2_title": "EV Sales Share by Region",
-        "chart3_title": "EV Stock Share Distribution"
+        "chart3_title": "EV Stock Share Distribution",
+        "chart4_title": "Global EV Stock Over Time"
     }
 }
 
@@ -549,7 +551,53 @@ if data is not None:
                 st.write("Select multiple years to see trend.")
 
         
+        mpl.rcParams['figure.dpi'] = 150
 
+        df_chart = df_filtered.copy()
+        st.subheader(config["chart4_title"])
+        stock_df = df_chart[
+            (df_chart['parameter'] == 'EV stock') & 
+            (df_chart['unit'] == 'Vehicles')
+        ].copy()
+
+        stock_df = stock_df[stock_df['powertrain'] != "FCEV"]
+
+        region_mapping = {
+            "china": "China",
+            "europe": "Europe",
+            "usa": "USA",
+            "rest of the world": "Rest of the world"
+        }
+        stock_df['region'] = stock_df['region'].astype(str).str.lower().str.strip().map(region_mapping)
+
+        stock_df = stock_df[stock_df['region'].notna()]
+
+        stock_df['region_powertrain'] = stock_df['region'] + " " + stock_df['powertrain']
+
+        stock_pivot = (
+            stock_df.groupby(['year', 'region_powertrain'])['value']
+            .sum()
+            .unstack(fill_value=0)
+            .sort_index()
+        )
+
+        stock_pivot_million = stock_pivot / 1e6
+
+        fig, ax = plt.subplots(figsize=(16, 10))
+        stock_pivot_million.plot(
+            kind='bar',
+            stacked=True,
+            ax=ax,
+            colormap='rocket'
+        )
+
+        ax.set_xlabel("Year", fontsize=16)
+        ax.set_ylabel("EV Stock (Million Vehicles)", fontsize=16)
+        ax.set_title("Global EV Stock Over Time by Region and Powertrain", fontsize=18)
+        ax.legend(title="Region + Powertrain", bbox_to_anchor=(1, 1), fontsize=12, title_fontsize=12)
+        plt.tight_layout()
+
+        st.pyplot(fig)
         
         # Chart 3: EV Stock Share Distribution (Histogram)
         col3_viz, col4_viz = st.columns(2)
@@ -592,6 +640,5 @@ if data is not None:
                 st.pyplot(fig2)
             else:
                 st.write("No EV sales share data available for the selected filters.")  
-        
 else:
     st.error("Failed to load data.")
