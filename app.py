@@ -206,6 +206,7 @@ if data is not None:
     elif selected_dataset == "Micro-enterprise Tax Payers":
         data.columns = data.columns.str.lower().str.replace(' ', '_')
         
+        # Convert all relevant status values to English
         data['aktivs'] = data['aktivs'].str.strip().replace({
             'jā': 'active',
             'ir': 'active',
@@ -494,26 +495,29 @@ if data is not None:
             else:
                 st.write("Select multiple years to see trend.")
         
-        # Chart 2: EV Sales Share by Region (Bar Plot) - Modified to show overall average across all years
+
+        # Chart 2: EV Stock by Powertrain (Stacked Bar Plot)
         with col2_viz:
-            st.subheader(config["chart2_title"])
-            sales_share_data = df_filtered[(df_filtered['parameter'] == 'EV sales share') & (df_filtered['unit'] == 'percent')]
-            if not sales_share_data.empty:
-                # Calculate the average EV sales share across all selected years for each region
-                sales_share_overall = sales_share_data.groupby('region')['value'].mean().reset_index()
-                fig2, ax2 = plt.subplots(figsize=(8, 5))
-                sns.barplot(
-                    data=sales_share_overall,
-                    x='value', y='region',
-                    ax=ax2, palette='mako'
-                )
-                ax2.set_xlabel('Average EV Sales Share (%)')
-                ax2.set_ylabel('Region')
-                ax2.set_title('Overall EV Sales Share Across Selected Years')
+            st.subheader("EV Stock by Powertrain")
+            stock_data = df_filtered[(df_filtered['parameter'] == 'EV stock') & (df_filtered['unit'] == 'Vehicles')]
+            if not stock_data.empty and len(selected_years) > 1:
+                stock_pivot = stock_data.pivot_table(index='year', columns='powertrain', values='value', aggfunc='sum', fill_value=0)
+                fig4, ax4 = plt.subplots(figsize=(8, 5))
+                stock_pivot.plot(kind='bar', stacked=True, ax=ax4, colormap='rocket')
+                ax4.set_xlabel('Year')
+                ax4.set_ylabel('EV Stock (Vehicles)')
+                ax4.legend(title='Powertrain', bbox_to_anchor=(1, 1))
                 plt.tight_layout()
-                st.pyplot(fig2)
+                st.pyplot(fig4)
+            elif len(selected_years) == 1:
+                st.write(f"Showing data only for year {selected_years[0]}.")
+                stock_year = stock_data[stock_data['year'] == selected_years[0]]['value'].sum()
+                st.metric(f"EV Stock in {selected_years[0]}", f"{stock_year:,.0f}")
             else:
-                st.write("No EV sales share data available for the selected filters.")
+                st.write("Select multiple years to see trend.")
+
+        
+
         
         # Chart 3: EV Stock Share Distribution (Histogram)
         col3_viz, col4_viz = st.columns(2)
@@ -534,25 +538,28 @@ if data is not None:
             else:
                 st.write("No EV stock share data available for the selected filters.")
         
-        # Chart 4: EV Stock by Powertrain (Stacked Bar Plot)
+        # Chart 4: EV Sales Share by Region (Bar Plot) - Modified to show overall average across all years
         with col4_viz:
-            st.subheader("EV Stock by Powertrain")
-            stock_data = df_filtered[(df_filtered['parameter'] == 'EV stock') & (df_filtered['unit'] == 'Vehicles')]
-            if not stock_data.empty and len(selected_years) > 1:
-                stock_pivot = stock_data.pivot_table(index='year', columns='powertrain', values='value', aggfunc='sum', fill_value=0)
-                fig4, ax4 = plt.subplots(figsize=(8, 5))
-                stock_pivot.plot(kind='bar', stacked=True, ax=ax4, colormap='rocket')
-                ax4.set_xlabel('Year')
-                ax4.set_ylabel('EV Stock (Vehicles)')
-                ax4.legend(title='Powertrain', bbox_to_anchor=(1, 1))
-                plt.tight_layout()
-                st.pyplot(fig4)
-            elif len(selected_years) == 1:
-                st.write(f"Showing data only for year {selected_years[0]}.")
-                stock_year = stock_data[stock_data['year'] == selected_years[0]]['value'].sum()
-                st.metric(f"EV Stock in {selected_years[0]}", f"{stock_year:,.0f}")
+            st.subheader(config["chart2_title"])
+            sales_share_data = df_filtered[(df_filtered['parameter'] == 'EV sales share') &
+                                        (df_filtered['unit'] == 'percent')]
+            if not sales_share_data.empty:
+                # Calculate the average EV sales share across all selected years for each region
+                sales_share_overall = sales_share_data.groupby('region')['value'].mean().reset_index()
+                # Increase figure height for more room and adjust the left margin
+                fig2, ax2 = plt.subplots(figsize=(12, 15))
+                sns.barplot(
+                    data=sales_share_overall,
+                    x='value', y='region',
+                    ax=ax2, palette='mako'
+                )
+                ax2.set_xlabel('Average EV Sales Share (%)', fontsize=12)
+                ax2.set_ylabel('Region', fontsize=12)
+                ax2.set_title('Overall EV Sales Share Across Selected Years', fontsize=14)
+                plt.subplots_adjust(left=0.3)  # Increase left margin to accommodate long y-axis labels
+                st.pyplot(fig2)
             else:
-                st.write("Select multiple years to see trend.")
+                st.write("No EV sales share data available for the selected filters.")  
         
 else:
     st.error("Failed to load data.")
